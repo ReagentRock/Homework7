@@ -1,0 +1,111 @@
+---
+title: "Homework7"
+author: "Elijah Wang"
+date: "2025-04-06"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo =FALSE)
+
+library(tidyverse)
+library(mosaic)
+library(MatchIt)
+
+turnout<-read.csv("turnout.csv")
+fold<-read.csv("armfold.csv")
+
+```
+
+## Problem 1: Armfolding...
+
+```{r, echo=TRUE, include=FALSE}
+table(fold$Sex)
+table(fold$Sex,fold$LonR_fold)
+
+round(prop(LonR_fold~Sex,data=fold,success=1),2)
+diffpropfold<-prop.test(LonR_fold~Sex,data=fold,success=1)
+diff(diffpropfold$estimate)
+
+
+N1<-sum(table(fold$Sex,fold$LonR_fold)[1,])
+N2=sum(table(fold$Sex,fold$LonR_fold)[2,])
+p1<-diffpropfold$estimate[1]
+p2<-diffpropfold$estimate[2]
+se<-sqrt(((p1*(1-p1))/N1)+((p2*(1-p2))/N2))
+
+```
+A. There is 111 Female and 106 Male in this dataset. There is a 0.42 proportion of females that fold their left arm on top; there is a 0.47 proportion of males that fold their left arm on top.
+
+B. There is an observed difference of 0.0483 in proportion between males and females.
+
+C. The 95% confidence interval for the difference in proportions is -0.190 to 0.093. The standard error between these two proportions is 0.0675. The N values I plugged into the standard error equation is 111 and 106. The proportion values plugged into the equation is 0.423 and 0.472. The z value used is 1.96 to reach the desired 95% confidence interval. With all these values, the confidence interval could be calculated by hand as (0.423-0.472)+-1.96*0.0675. This confidence interval is -0.181 to 0.083. As seen by the confidence interval calculated in R and by hand, they are similar to another with difference in rounding error.  
+
+D. If we were to run Nth amount of simulations, then we would expect that 95% of simulations fall within the interval -0.1897 to 0.0932.
+
+E. The Standard Error calculated represents the average deviation from the mean or a given distribution.
+
+F. The sampling distribution within this context refers to the probability of the difference between male and female left arm crossing given that the classes vary and the procedure is the same. 
+
+G. The theorem that justifies the use of the Normal Distribution for the sampling distribution is the Central Limit Theorem that claims the errors revolving around a given mean creates the normal distribution as much more nudges are needed to stray from the mean. 
+
+H. Due to having zero within the confidence interval, you could say the differences aren't statistically significant. However, not all statistically significant results are practically significant; similarly, despite the results being explainable by nothing, the large difference in proportion could be notable/practically significant and need further investigation.
+
+I. The confidence interval would vary across samples as there is inherent random variation between classes and universities. However, the methodology would be kept the same so similar conclusions and results could be drawn.
+
+
+
+
+## Problem 2: Get Out to Vote!
+
+
+```{r pressure, echo=FALSE, include=FALSE}
+
+prop(voted1998~GOTV_call,data=turnout,success=1)[2]
+#voted with call
+prop(voted1998~GOTV_call,data=turnout,success=1)[1]
+#voted without call
+
+
+diffpropturn<-prop.test(voted1998~GOTV_call,data=turnout,success=1)
+diff(diffpropturn$estimate)
+
+#establishes correlation with independent variable(X)
+cor(turnout$MAJORPTY,turnout$GOTV_call)
+cor(turnout$AGE,turnout$GOTV_call)
+
+#establishes causation to dependent variable(Y)
+diffpropturnM<-prop.test(MAJORPTY~voted1998,data=turnout,success=1)
+diffpropturnA<-t.test(AGE~voted1998,data=turnout)
+
+
+
+
+# step 1: look for matches based on age and class_a variables
+# ratio = 3 says: look for 3 matches for each treated unit (green building)
+turnout_match = matchit(GOTV_call ~ voted1998+MAJORPTY+AGE, data = turnout, ratio=5)
+
+# Step 2:
+# Check covariate balance
+summary(turnout_match)
+
+# Extract only the matched pairs
+turnout_matched = match.data(turnout_match)
+
+prop(voted1998~GOTV_call,data=turnout_matched,success=1)[2]
+#voted with call
+prop(voted1998~GOTV_call,data=turnout_matched,success=1)[1]
+#voted without call
+
+
+diffpropturnM<-prop.test(voted1998~GOTV_call,data=turnout_matched,success=1)
+diff(diffpropturnM$estimate)
+
+```
+A. There is a 0.648 proportion that those who received the GOTV call voted while a 0.444 proportion that those who didn't receive the GOTV call voted. As such, there is a 95% confidence interval that there is a 0.204 difference between the two proportions. 
+
+B. We could discover that there is a correlation between registered party affiliation and age to receiving GOTV calls. These two variables correlated with GOTV calls also has causation to whether they voted in 1998 by the 2-sample test for equality of proportions with continuity correction and the Welch's Two Sample t-test. Given that age and registered party affiliation is correlated with the independent variable and causes the dependent variable, these variables are confounders.  
+
+C. Within the matched data, there is a 0.648 proportion for those that received the GOTV call voted while a 0.6437 proportion that those who didn't receive the GOTV call voted. There is a 0.004 difference in proportions.
+
+
